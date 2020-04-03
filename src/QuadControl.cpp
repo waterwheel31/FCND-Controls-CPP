@@ -75,17 +75,15 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
   //cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
   //cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
 
-  float l = L / sqrtf(2.f);
-
   float f = collThrustCmd;
-  float m_x = momentCmd.x / l;
-  float m_y = momentCmd.y / l;
-  float m_z = - momentCmd.z / kappa;
+  float diff_x = momentCmd.x / L / 2.f / sqrtf(2);
+  float diff_y = momentCmd.y / L / 2.f / sqrtf(2);
+  float diff_z = momentCmd.z / 4.f / kappa;
   
-  cmd.desiredThrustsN[0] = (f + m_x + m_y + m_z) / 4.f;   // front left  - f1
-  cmd.desiredThrustsN[1] = (f - m_x + m_y - m_z) / 4.f;   // front right - f2
-  cmd.desiredThrustsN[2] = (f + m_x - m_y - m_z) / 4.f ;  // rear left   - f4
-  cmd.desiredThrustsN[3] = (f - m_x - m_y + m_z) / 4.f;   // rear right  - f3
+  cmd.desiredThrustsN[0] = f / 4.f + diff_x + diff_y - diff_z;   // front left  
+  cmd.desiredThrustsN[1] = f / 4.f - diff_x + diff_y + diff_z;   // front right 
+  cmd.desiredThrustsN[2] = f / 4.f + diff_x - diff_y + diff_z;  // rear left   
+  cmd.desiredThrustsN[3] = f / 4.f - diff_x - diff_y - diff_z;   // rear right  3
   
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
@@ -146,6 +144,7 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+  /*
   float c = -collThrustCmd / mass; 
 
   float b_x_c = accelCmd.x / c;
@@ -157,6 +156,18 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
   pqrCmd.x = (R(1,0) *b_x_c_dot - R(0,0) * b_y_c_dot) / R(2,2);
   pqrCmd.y = (R(1,1) *b_x_c_dot - R(0,1) * b_y_c_dot) / R(2,2);
   pqrCmd.z = 0.0;
+  */ 
+
+  float target_R13 = -CONSTRAIN(accelCmd[0] / (collThrustCmd / mass), -maxTiltAngle, maxTiltAngle);
+  float target_R23 = -CONSTRAIN(accelCmd[1] / (collThrustCmd / mass), -maxTiltAngle, maxTiltAngle);
+    
+  if (collThrustCmd < 0)
+  {
+    target_R13 = 0;
+    target_R23 = 0;
+  }
+  pqrCmd.x = (1 / R(2, 2))*(-R(1, 0) * kpBank*(R(0, 2) - target_R13) + R(0, 0) * kpBank*(R(1, 2) - target_R23));
+  pqrCmd.y = (1 / R(2, 2))*(-R(1, 1) * kpBank*(R(0, 2) - target_R13) + R(0, 1) * kpBank*(R(1, 2) - target_R23));
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -188,13 +199,24 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+  /*
+  velZCmd += kpPosZ * (posZCmd - posZ);
+  integratedAltitudeError += (velZCmd - velZ) * dt;
+  velZCmd = CONSTRAIN(velZCmd, -maxAscentRate, maxDescentRate);
+  float u_bar_1 = kpPosZ * (posZCmd - posZ) + kpVelZ * (velZCmd - velZ) + KiPosZ * integratedAltitudeError + accelZCmd; 
+  float acc = (u_bar_1 - 9.81) / R(2,2) ;
+  thrust =  CONSTRAIN(acc, - maxAscentRate / dt, maxAscentRate / dt) * - mass;
+  */
+
+  velZCmd += kpPosZ * (posZCmd - posZ);
+
   integratedAltitudeError += (velZCmd - velZ) * dt;
 
-  float u_bar_1 = kpPosZ * (posZCmd - posZ) + kpVelZ * (velZCmd - velZ) + KiPosZ * integratedAltitudeError + accelZCmd; 
+  velZCmd = CONSTRAIN(velZCmd, -maxAscentRate, maxDescentRate);
 
-  float acc = (u_bar_1 - 9.81) / R(2,2) ;
+  float desAccel = kpVelZ * (velZCmd - velZ) + KiPosZ * integratedAltitudeError + accelZCmd - 9.81f;
 
-  thrust =  CONSTRAIN(acc, - maxAscentRate / dt, maxAscentRate / dt) * - mass;
+  thrust = -(desAccel / R(2, 2) * mass); 
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
   
@@ -262,14 +284,9 @@ float QuadControl::YawControl(float yawCmd, float yaw)
   float yawRateCmd=0;
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
-  float yawCmd_mod = 0;
-
-  if ( yawCmd > 0 ) {
-    yawCmd_mod = fmodf(yawCmd, 2 * F_PI);
-  } else {
-    yawCmd_mod = -fmodf(-yawCmd, 2 * F_PI);
-  }
-  float err = yawCmd_mod - yaw;
+  float err = yawCmd - yaw;
+  err = fmodf(err, F_PI*2.f);
+  
   if ( err > F_PI ) {
     err -= 2 * F_PI;
   } if ( err < -F_PI ) {

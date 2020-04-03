@@ -4,7 +4,6 @@
 ## Scenario 1
 
 - Goal: Keep at the same position, and not fall down to the ground
-- Approach: Tuned the mass to actual mass (=0.5) and gave the same force as the gravity does
 
 <p align="center">
 <img src="./video/scenario1.gif" width=400>
@@ -19,7 +18,7 @@ PASS: ABS(Quad.PosFollowErr) was less than 0.500000 for at least 0.800000 second
 - Goal: Stop vehicle's rolling by 
     - controlling the veichle's rotation (omega.x) to be 0
     - controlling the vehicle's angle (roll) to be 0 
-- Approach: set roll-pitch controller and body-rate controller
+
     
 
 <p align="center">
@@ -46,11 +45,26 @@ PASS: ABS(Quad2.Yaw) was less than 0.100000 for at least 1.000000 seconds
 ## Scenario 4
 
 
+<p align="center">
+<img src="./video/scenario4.gif" width=400>
+</p>
+
+```
+PASS: ABS(Quad1.PosFollowErr) was less than 0.100000 for at least 1.500000 seconds
+PASS: ABS(Quad2.PosFollowErr) was less than 0.100000 for at least 1.500000 seconds
+PASS: ABS(Quad3.PosFollowErr) was less than 0.100000 for at least 1.500000 seconds
+```
 
 ## Scenario 5
 
 
 
+<p align="center">
+<img src="./video/scenario5.gif" width=400>
+</p>
 
+```
+PASS: ABS(Quad2.PosFollowErr) was less than 0.250000 for at least 3.000000 seconds
+```
 
 
